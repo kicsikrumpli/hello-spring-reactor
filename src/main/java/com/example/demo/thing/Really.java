@@ -1,4 +1,4 @@
-package com.example.demo.svc.thing;
+package com.example.demo.thing;
 
 public enum Really {
     YAH_REALLY(true), NO(false);

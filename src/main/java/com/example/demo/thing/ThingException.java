@@ -1,6 +1,4 @@
-package com.example.demo.svc.thing;
-
-import com.example.demo.svc.ThingResponse;
+package com.example.demo.thing;
 
 public class ThingException extends Exception{
     public ThingException(Integer status, String body) {

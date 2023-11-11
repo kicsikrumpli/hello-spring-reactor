@@ -1,6 +1,5 @@
-package com.example.demo.svc;
+package com.example.demo.thing;
 
-import com.example.demo.svc.thing.Really;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

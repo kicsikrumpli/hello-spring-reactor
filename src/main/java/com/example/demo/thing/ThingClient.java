@@ -1,7 +1,5 @@
-package com.example.demo.svc;
+package com.example.demo.thing;
 
-import com.example.demo.svc.thing.Really;
-import com.example.demo.svc.thing.ThingException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
@@ -19,9 +17,9 @@ public class ThingClient {
         this.httpbin = httpbin;
     }
 
-    public Mono<ThingResponse> getThing(boolean emulateFailure) {
+    public Mono<ThingResponse> getThing(String name, boolean emulateFailure) {
         ThingRequest body = ThingRequest.builder()
-                .name("thing")
+                .name(name)
                 .numbers(List.of(1, 2, 3, 4))
                 .oreally(Really.YAH_REALLY)
                 .build();
