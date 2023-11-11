@@ -1,14 +1,13 @@
-package com.example.demo.thing;
+package com.example.demo.attach;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ThingRequest {
+public class AttachRequest {
 }

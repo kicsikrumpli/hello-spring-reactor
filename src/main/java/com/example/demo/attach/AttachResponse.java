@@ -1,4 +1,4 @@
-package com.example.demo.repo;
+package com.example.demo.attach;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,5 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Success implements Payload {
-    private String name;
-    private Integer sum;
+public class AttachResponse {
 }

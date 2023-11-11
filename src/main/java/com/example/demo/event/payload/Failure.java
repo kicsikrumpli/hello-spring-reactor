@@ -1,14 +1,15 @@
-package com.example.demo.thing;
+package com.example.demo.event.payload;
 
+import com.example.demo.event.Payload;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ThingRequest {
+public class Failure implements Payload {
+    private String reason;
 }
