@@ -53,12 +53,37 @@ public class DemoApplication implements CommandLineRunner {
         SpringApplication.run(DemoApplication.class, args);
     }
 
+    /**
+     * Reactive Example.
+     *
+     * - uses reactive repo: read - write json files for each document
+     * - reactive clients:
+     *      - thing client: make request with one thing
+     *      - attach client: make one request per doc
+     * - source of things, docs: existing events in repo
+     * - processing flow:
+     *      - make thing request
+     *          - from thing event payload
+     *          - if fails: skip attach requests
+     *          - if succeeds: continue
+     *      - make attach request
+     *          - from successful thing response and
+     *          - from payload of attach event: docs
+     *          - many requests, one per doc
+     *          - failing attach requests are skipped, ignore error
+     *      - combine thing response, attach response
+     *          - in case of failure write fail event into repo
+     *          - in case of success write success event into repo
+     * Usage:
+     * - To make a thing request fail: use "!" as prefix (see writeExample())
+     * - To make a doc attach fail: suffix doc name with "!" (see writeExample())
+     * - define groupId
+     */
     @Override
     public void run(String... args) throws Exception {
         String groupId = "12345B";
-        writeExample(groupId);
 
-        // readExample();
+        writeExample(groupId);
 
         // get things from repo for group id, discard all but first
         var thingEvent = repo
@@ -74,7 +99,8 @@ public class DemoApplication implements CommandLineRunner {
                 .doOnNext(e -> log.info("@@@ Thing Event: {}", e))
                 .map(event -> thingRequestConverter.convert((Thing) event.getPayload()))
                 .flatMap(thingRequest -> thingClient.doWithThing(thingRequest))
-                .doOnNext(resp -> log.info("@@@ Thing Response: {}", resp));
+                .doOnNext(resp -> log.info("@@@ Thing Response: {}", resp))
+                .cache();  // use the same values in two separate subscriptions
 
         // get docs to attach from repo for group id
         Flux<Event<Payload>> attachEvents = repo.findByPredicate(
@@ -82,43 +108,36 @@ public class DemoApplication implements CommandLineRunner {
                         hasGroupId(groupId))
         );
 
-        // convert
-        //   - 1 thing response
-        //   - many attach __events__
-        // into series of attach __requests__
+        // convert (1 thing_response, n attach_event) -> n attach_request
         Flux<AttachRequest> attachRequests = thingEventResponse
                 .flatMapMany(thingResponse -> attachEvents
                         .map(attachEvent -> (Docs) attachEvent.getPayload())
                         .flatMapIterable(Docs::getDocs)
                         .map(doc -> attachRequestConverter.convert(doc, thingResponse.getResponse()))
-        );
+                );
 
         // call attach client, collect successful calls into a mono of set
         Mono<Set<AttachResponse>> attachResponses = attachRequests
                 .doOnNext(attachRequest -> log.info("### Attach REQ: {}", attachRequest))
-                .flatMap(attachRequest -> attachClient.doAttach(attachRequest))
-                .doOnError(e -> log.warn("Attach failed, skipping", e))
-                .onErrorResume(throwable -> Flux.empty())  // skip on failed request
+                .flatMap(attachRequest -> attachClient
+                        .doAttach(attachRequest)
+                        .doOnError(e -> log.warn("Attach failed, skipping: {}", e.getMessage()))
+                        .onErrorResume(throwable -> Mono.empty())  // skip on failed request
+                )
                 .doOnNext(attachResponse -> log.info("### Attach RESP: {}", attachResponse))
                 .collectList()
                 .map(Set::copyOf);
 
         // aggregate transaction result
-        // map success to SUCCESS event
-        // map error to FAILURE event
-        //var txResult = Mono.zip(thingEventResponse, attachResponses) // can't zip again, has already been closed
-        var txResult = thingEventResponse
+        var txResult = Mono.zip(thingEventResponse, attachResponses) // needs .cached(), 2nd subscription
                 .map(thingResponse_attachResponse -> Event.builder()
                         .groupId(groupId)
                         .payload(Success.builder()
-                                .name(thingResponse_attachResponse.getResponse())
-                                .attachments(Set.of()
-                                        /*
-                                        thingResponse_attachResponse.getT2()
+                                .name(thingResponse_attachResponse.getT1().getResponse())
+                                .attachments(thingResponse_attachResponse.getT2()
                                         .stream()
                                         .map(AttachResponse::getData)
                                         .collect(Collectors.toSet())
-                                         */
                                 )
                                 .build())
                         .build())
