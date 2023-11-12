@@ -74,7 +74,7 @@ public class DemoApplication implements CommandLineRunner {
                 .map(event -> thingRequestConverter.convert((Thing) event.getPayload()))
                 .flatMap(thingRequest -> thingClient.doWithThing(thingRequest))
                 .doOnNext(resp -> log.info("@@@ Thing Response: {}", resp))
-                .cache();  // use the same values in two separate subscriptions
+                .share();  // use the same values in two separate subscriptions
 
         // get docs to attach from repo for group id
         Flux<Event<Payload>> attachEvents = repo.findByPredicate(
