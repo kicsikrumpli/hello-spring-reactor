@@ -1,6 +1,6 @@
 package com.example.demo.event;
 
-import com.example.demo.event.payload.Attachment;
+import com.example.demo.event.payload.Docs;
 import com.example.demo.event.payload.Failure;
 import com.example.demo.event.payload.Success;
 import com.example.demo.event.payload.Thing;
@@ -37,7 +37,7 @@ public class Event<T extends Payload> {
                     name = "THING_EVENT"
             ),
             @JsonSubTypes.Type(
-                    value = Attachment.class,
+                    value = Docs.class,
                     name = "ATTACH_EVENT"
             ),
             @JsonSubTypes.Type(

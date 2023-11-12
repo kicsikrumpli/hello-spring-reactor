@@ -1,13 +1,16 @@
 package com.example.demo.attach;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import java.util.Map;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class AttachResponse {
+    @JsonProperty("data")
+    private String data;
+
+    @JsonAnySetter
+    private Map<String, Object> stuff;
 }

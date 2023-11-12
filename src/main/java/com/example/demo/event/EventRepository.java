@@ -85,6 +85,4 @@ public class EventRepository<T extends Payload> {
         return objectMapper.readValue(buff.asInputStream(), new TypeReference<Event<T>>() {
         });
     }
-
-
 }

@@ -11,4 +11,6 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ThingRequest {
+    private String requestContent;
+    private Boolean shouldFail;
 }

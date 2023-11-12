@@ -1,4 +1,4 @@
-package com.example.demo.attach;
+package com.example.demo.event.payload.docs;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AttachRequest {
-    private String docName;
-    private String thingName;
+public class Doc {
+    private String name;
 }
