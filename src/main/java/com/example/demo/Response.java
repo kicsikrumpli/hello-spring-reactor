@@ -1,4 +1,4 @@
-package com.example.demo.attach;
+package com.example.demo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,8 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AttachRequest {
-    private String docName;
-    private String thingName;
-    private Boolean shouldFail;
+public class Response {
+
 }

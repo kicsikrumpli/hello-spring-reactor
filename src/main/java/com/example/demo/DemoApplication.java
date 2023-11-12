@@ -3,6 +3,7 @@ package com.example.demo;
 import com.example.demo.attach.AttachClient;
 import com.example.demo.attach.AttachRequest;
 import com.example.demo.attach.AttachRequestConverter;
+import com.example.demo.attach.AttachResponse;
 import com.example.demo.event.Event;
 import com.example.demo.event.EventRepository;
 import com.example.demo.event.EventType;
@@ -25,6 +26,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,24 +36,18 @@ import static com.example.demo.event.Predicates.hasGroupId;
 @SpringBootApplication
 @Slf4j
 public class DemoApplication implements CommandLineRunner {
-
     @Autowired
     private EventRepository<Payload> repo;
 
     @Autowired
-    private AttachClient attachClient;
-
-    @Autowired
-    private ObjectMapper om;
-
-    @Autowired
     private ThingRequestConverter thingRequestConverter;
+    @Autowired
+    private ThingClient thingClient;
 
     @Autowired
     private AttachRequestConverter attachRequestConverter;
-
     @Autowired
-    private ThingClient thingClient;
+    private AttachClient attachClient;
 
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
@@ -60,7 +56,7 @@ public class DemoApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         String groupId = "12345B";
-        // writeExample(groupId);
+        writeExample(groupId);
 
         // readExample();
 
@@ -81,34 +77,49 @@ public class DemoApplication implements CommandLineRunner {
                 .doOnNext(resp -> log.info("@@@ Thing Response: {}", resp));
 
         // get docs to attach from repo for group id
-        Flux<Event<Payload>> attachEvent = repo.findByPredicate(
+        Flux<Event<Payload>> attachEvents = repo.findByPredicate(
                 hasEventType(EventType.ATTACH_EVENT).and(
                         hasGroupId(groupId))
         );
 
+        // convert
+        //   - 1 thing response
+        //   - many attach __events__
+        // into series of attach __requests__
+        Flux<AttachRequest> attachRequests = thingEventResponse
+                .flatMapMany(thingResponse -> attachEvents
+                        .map(attachEvent -> (Docs) attachEvent.getPayload())
+                        .flatMapIterable(Docs::getDocs)
+                        .map(doc -> attachRequestConverter.convert(doc, thingResponse.getResponse()))
+        );
 
-        /*
-        Mono<Object> x = thingEventResponse
-                .flatMap(thingResponse -> attachEvent
-                        .map(event -> (Docs) event.getPayload())
-                        .map(docs -> docs.getDocs()
-                                .stream()
-                                .map(doc -> attachRequestConverter.convert(
-                                        doc,
-                                        thingResponse.getResponse())
-                                )
-                                .collect(Collectors.toSet())
-                        )
-                );
-                //.flatMapMany(Flux::fromIterable);
-         */
+        // call attach client, collect successful calls into a mono of set
+        Mono<Set<AttachResponse>> attachResponses = attachRequests
+                .doOnNext(attachRequest -> log.info("### Attach REQ: {}", attachRequest))
+                .flatMap(attachRequest -> attachClient.doAttach(attachRequest))
+                .doOnError(e -> log.warn("Attach failed, skipping", e))
+                .onErrorResume(throwable -> Flux.empty())  // skip on failed request
+                .doOnNext(attachResponse -> log.info("### Attach RESP: {}", attachResponse))
+                .collectList()
+                .map(Set::copyOf);
+
         // aggregate transaction result
+        // map success to SUCCESS event
+        // map error to FAILURE event
+        //var txResult = Mono.zip(thingEventResponse, attachResponses) // can't zip again, has already been closed
         var txResult = thingEventResponse
-                .map(thingResponse -> Event.builder()
+                .map(thingResponse_attachResponse -> Event.builder()
                         .groupId(groupId)
                         .payload(Success.builder()
-                                .name(thingResponse.getResponse())
-                                .attachments(Set.of())
+                                .name(thingResponse_attachResponse.getResponse())
+                                .attachments(Set.of()
+                                        /*
+                                        thingResponse_attachResponse.getT2()
+                                        .stream()
+                                        .map(AttachResponse::getData)
+                                        .collect(Collectors.toSet())
+                                         */
+                                )
                                 .build())
                         .build())
                 .onErrorResume(throwable -> Mono.just(Event.builder()
@@ -141,7 +152,7 @@ public class DemoApplication implements CommandLineRunner {
                 .payload(Docs.builder()
                         .docs(Set.of(
                                 Doc.builder().name("doc a").build(),
-                                Doc.builder().name("doc b").build(),
+                                Doc.builder().name("doc b!").build(),
                                 Doc.builder().name("doc c").build()
                         ))
                         .build())

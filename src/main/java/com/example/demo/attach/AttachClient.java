@@ -16,11 +16,13 @@ public class AttachClient {
         this.webClient = webClient;
     }
 
-    public Mono<AttachResponse> attach(AttachRequest request) {
+    public Mono<AttachResponse> doAttach(AttachRequest request) {
+        String requestBody = String.join(":", request.getThingName(), request.getDocName());
+
         return webClient
                 .method(HttpMethod.POST)
-                .uri("/delay/2")
-                .bodyValue(String.join(":", request.getDocName(), request.getDocName()))
+                .uri(request.getShouldFail() ? "/status/418" : "/delay/2")
+                .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(AttachResponse.class);
     }

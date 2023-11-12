@@ -9,6 +9,7 @@ public class AttachRequestConverter {
         return AttachRequest.builder()
                 .docName(doc.getName())
                 .thingName(thingName)
+                .shouldFail(doc.getName().endsWith("!"))
                 .build();
     }
 }
