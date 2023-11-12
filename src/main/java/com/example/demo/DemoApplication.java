@@ -83,7 +83,7 @@ public class DemoApplication implements CommandLineRunner {
     public void run(String... args) throws Exception {
         String groupId = "12345B";
 
-        writeExample(groupId);
+        // writeExample(groupId);
 
         // get things from repo for group id, discard all but first
         var thingEvent = repo
